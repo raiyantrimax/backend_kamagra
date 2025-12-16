@@ -1,0 +1,31 @@
+const dotenv = require('dotenv');
+dotenv.config();
+
+const express = require('express');
+const mongoose = require('mongoose');
+const cors = require('cors');
+const path = require('path');
+
+const productsRouter = require('./routes/products.routes');
+const usersRouter = require('./routes/users.routes');
+
+const { upload, uploadDir } = require('./middleware/upload');
+
+const app = express();
+app.use(cors());
+app.use(express.json());
+
+// serve uploads from middleware uploadDir
+app.use('/uploads', express.static(uploadDir));
+
+// MongoDB connection
+mongoose.connect(process.env.MONGODB_URI, { useNewUrlParser: true, useUnifiedTopology: true })
+  .then(() => console.log('MongoDB connected'))
+  .catch(err => console.error(err));
+
+// mount routers
+app.use('/api/products', productsRouter);
+app.use('/api', usersRouter); // users/admin login mounted under /api (keeps /api/admin/login compatible)
+
+const PORT = process.env.PORT || 5000;
+app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
