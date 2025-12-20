@@ -5,12 +5,20 @@ const express = require('express');
 const mongoose = require('mongoose');
 const cors = require('cors');
 const path = require('path');
+const cloudinary = require('cloudinary').v2;
 
 const productsRouter = require('./routes/products.routes');
 const usersRouter = require('./routes/users.routes');
 const uploadRouter = require('./routes/upload.routes');
 
 const { upload, uploadDir } = require('./middleware/upload');
+
+// Configure Cloudinary
+cloudinary.config({
+  cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
+  api_key: process.env.CLOUDINARY_API_KEY,
+  api_secret: process.env.CLOUDINARY_API_SECRET
+});
 
 const app = express();
 app.use(cors());

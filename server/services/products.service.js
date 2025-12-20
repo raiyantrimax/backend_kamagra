@@ -68,23 +68,33 @@ async function createProduct(data) {
 async function createProductFromUpload(req) {
     const files = req.files || [];
     const fs = require('fs');
+    const cloudinary = require('cloudinary').v2;
     
-    // Convert uploaded files to base64
-    const base64Images = files.map(file => {
-        const fileBuffer = fs.readFileSync(file.path);
-        const base64String = `data:${file.mimetype};base64,${fileBuffer.toString('base64')}`;
-        
-        // Delete the temporary file after converting to base64
-        fs.unlinkSync(file.path);
-        
-        return base64String;
-    });
+    // Upload files to Cloudinary
+    const cloudinaryUrls = [];
+    for (const file of files) {
+        try {
+            const result = await cloudinary.uploader.upload(file.path, {
+                folder: 'products',
+                resource_type: 'auto'
+            });
+            cloudinaryUrls.push(result.secure_url);
+            // Delete the temporary file after uploading
+            fs.unlinkSync(file.path);
+        } catch (error) {
+            console.error('Cloudinary upload error:', error);
+            // Delete temp file even on error
+            if (fs.existsSync(file.path)) {
+                fs.unlinkSync(file.path);
+            }
+        }
+    }
     
     const body = { ...req.body };
     // If client supplied images in body (string or array), merge them too
     const bodyImages = normalizeImagesField(body.image || body.images);
     // prefer explicit files + bodyImages merged (files appended)
-    body.image = [...bodyImages, ...base64Images];
+    body.image = [...bodyImages, ...cloudinaryUrls];
     delete body.images;
     // remove any helper fields if present
     delete body.existingImages;
@@ -135,22 +145,32 @@ async function updateProductById(idValue, update) {
  * Accepts `idValue` and Express `req`.
  * Flags in req.body:
  *  - existingImages: JSON string or array of image paths to keep
- *  - replaceImages: "true" => images replaced byuploadToCloud ? f.path :  uploaded files only
+ *  - replaceImages: "true" => images replaced by uploaded files only
  *  - removeAllImages: "true" => clear all images
  */
 async function updateProductFromUpload(idValue, req) {
     const fs = require('fs');
+    const cloudinary = require('cloudinary').v2;
     
-    // Convert uploaded files to base64
-    const newImages = (req.files || []).map(file => {
-        const fileBuffer = fs.readFileSync(file.path);
-        const base64String = `data:${file.mimetype};base64,${fileBuffer.toString('base64')}`;
-        
-        // Delete the temporary file after converting to base64
-        fs.unlinkSync(file.path);
-        
-        return base64String;
-    });
+    // Upload files to Cloudinary
+    const newImages = [];
+    for (const file of (req.files || [])) {
+        try {
+            const result = await cloudinary.uploader.upload(file.path, {
+                folder: 'products',
+                resource_type: 'auto'
+            });
+            newImages.push(result.secure_url);
+            // Delete the temporary file after uploading
+            fs.unlinkSync(file.path);
+        } catch (error) {
+            console.error('Cloudinary upload error:', error);
+            // Delete temp file even on error
+            if (fs.existsSync(file.path)) {
+                fs.unlinkSync(file.path);
+            }
+        }
+    }
 
     // parse existingImages
     let existingImages = [];
@@ -187,7 +207,7 @@ async function updateProductFromUpload(idValue, req) {
  * Delete product by id.
  */
 async function deleteProductById(idValue) {
-    // Images are stored as base64 in database, no file system cleanup needed
+    // Images are stored on Cloudinary - could add cleanup logic here if needed
     return Product.findByIdAndDelete(idValue);
 }
 
