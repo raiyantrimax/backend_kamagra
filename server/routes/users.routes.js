@@ -31,8 +31,9 @@ router.post('/users/login', async (req, res) => {
 // keep admin login route
 router.post('/admin/login', async (req, res) => {
   try {
-    const { username, password } = req.body;
-    const result = await authService.authenticateAdmin(username, password);
+    const { identifier, password } = req.body; // identifier = username or email
+    const id = identifier || req.body.username || req.body.email;
+    const result = await authService.authenticateUser(id, password);
     if (result.success) return res.json({ success: true, token: result.token, admin: result.user });
     return res.status(401).json({ success: false, message: result.message });
   } catch (err) {
