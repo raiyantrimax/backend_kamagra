@@ -20,6 +20,13 @@ cloudinary.config({
   api_secret: process.env.CLOUDINARY_API_SECRET
 });
 
+// Verify Cloudinary config
+console.log('Cloudinary Config:', {
+  cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
+  api_key: process.env.CLOUDINARY_API_KEY,
+  api_secret: process.env.CLOUDINARY_API_SECRET ? '***configured***' : 'MISSING'
+});
+
 const app = express();
 app.use(cors());
 app.use(express.json({ limit: '50mb' }));
