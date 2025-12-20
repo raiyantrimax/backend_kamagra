@@ -67,13 +67,24 @@ async function createProduct(data) {
  */
 async function createProductFromUpload(req) {
     const files = req.files || [];
-    const images = files.map(f => `/uploads/${f.filename}`);
+    const fs = require('fs');
+    
+    // Convert uploaded files to base64
+    const base64Images = files.map(file => {
+        const fileBuffer = fs.readFileSync(file.path);
+        const base64String = `data:${file.mimetype};base64,${fileBuffer.toString('base64')}`;
+        
+        // Delete the temporary file after converting to base64
+        fs.unlinkSync(file.path);
+        
+        return base64String;
+    });
     
     const body = { ...req.body };
     // If client supplied images in body (string or array), merge them too
     const bodyImages = normalizeImagesField(body.image || body.images);
     // prefer explicit files + bodyImages merged (files appended)
-    body.image = [...bodyImages, ...images];
+    body.image = [...bodyImages, ...base64Images];
     delete body.images;
     // remove any helper fields if present
     delete body.existingImages;
@@ -128,7 +139,18 @@ async function updateProductById(idValue, update) {
  *  - removeAllImages: "true" => clear all images
  */
 async function updateProductFromUpload(idValue, req) {
-    const newImages = (req.files || []).map(f => `/uploads/${f.filename}`);
+    const fs = require('fs');
+    
+    // Convert uploaded files to base64
+    const newImages = (req.files || []).map(file => {
+        const fileBuffer = fs.readFileSync(file.path);
+        const base64String = `data:${file.mimetype};base64,${fileBuffer.toString('base64')}`;
+        
+        // Delete the temporary file after converting to base64
+        fs.unlinkSync(file.path);
+        
+        return base64String;
+    });
 
     // parse existingImages
     let existingImages = [];
@@ -162,33 +184,10 @@ async function updateProductFromUpload(idValue, req) {
 }
 
 /**
- * Delete product by id
+ * Delete product by id.
  */
 async function deleteProductById(idValue) {
-    const product = await Product.findById(idValue);
-    if (!product) return null;
-    
-    // Delete associated images from file system
-    if (product.image && product.image.length > 0) {
-        const fs = require('fs');
-        const path = require('path');
-        
-        product.image.forEach(imagePath => {
-            // imagePath format: /uploads/filename.ext
-            const filename = imagePath.replace('/uploads/', '');
-            const fullPath = path.join(__dirname, '..', 'uploads', filename);
-            
-            // Delete file if it exists
-            if (fs.existsSync(fullPath)) {
-                try {
-                    fs.unlinkSync(fullPath);
-                } catch (err) {
-                    console.error(`Failed to delete image: ${fullPath}`, err);
-                }
-            }
-        });
-    }
-    
+    // Images are stored as base64 in database, no file system cleanup needed
     return Product.findByIdAndDelete(idValue);
 }
 
