@@ -58,7 +58,7 @@ async function authenticateAdmin(username, password) {
   if (!match) return { success: false, message: 'Invalid credentials' };
 
   const token = signToken({ id: admin._id, username: admin.username, role: 'admin' });
-  return { success: true, token, user: sanitizeUser(admin) };
+  return { success: true, token, admin: sanitizeUser(admin) };
 }
 
 function verifyToken(token) {
