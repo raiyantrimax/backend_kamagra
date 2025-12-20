@@ -1,19 +1,76 @@
 const mongoose = require('mongoose');
 const bcrypt = require('bcrypt');
+const Schema = mongoose.Schema;
 
 const SALT_ROUNDS = Number(process.env.BCRYPT_SALT_ROUNDS) || 10;
 
-const userSchema = new mongoose.Schema({
-  username: { type: String, required: true, unique: true, index: true },
-  email:    { type: String, required: true, unique: true, index: true, lowercase: true, trim: true },
-  phone:    { type: String, trim: true }, // added phone field
-  password: { type: String, required: true },
-  role:     { type: String, enum: ['user', 'admin'], default: 'user' },
-  active:   { type: Boolean, default: true }
-}, { timestamps: true });
+const UserSchema = new Schema({
+  name: {
+    type: String,
+    required: true,
+    trim: true
+  },
+  
+  email: {
+    type: String,
+    required: true,
+    unique: true,
+    lowercase: true,
+    trim: true,
+    index: true
+  },
+  
+  password: {
+    type: String,
+    required: true,
+    minlength: 6
+  },
+  
+  role: {
+    type: String,
+    enum: ['user', 'admin', 'super_admin'],
+    default: 'user',
+    index: true
+  },
+  
+  phone: {
+    type: String,
+    trim: true
+  },
+  
+  address: {
+    street: String,
+    city: String,
+    state: String,
+    zipCode: String,
+    country: String
+  },
+  
+  isActive: {
+    type: Boolean,
+    default: true
+  },
+  
+  isEmailVerified: {
+    type: Boolean,
+    default: false
+  },
+  
+  lastLogin: {
+    type: Date
+  },
+  
+  resetPasswordToken: String,
+  resetPasswordExpires: Date
+}, {
+  timestamps: true
+});
+
+// Index for faster user lookup
+UserSchema.index({ email: 1, role: 1 });
 
 // hash password before save if modified
-userSchema.pre('save', async function (next) {
+UserSchema.pre('save', async function (next) {
   if (!this.isModified('password')) return next();
   try {
     const hash = await bcrypt.hash(this.password, SALT_ROUNDS);
@@ -25,8 +82,8 @@ userSchema.pre('save', async function (next) {
 });
 
 // instance method to compare password
-userSchema.methods.comparePassword = function (candidate) {
+UserSchema.methods.comparePassword = function (candidate) {
   return bcrypt.compare(candidate, this.password);
 };
 
-module.exports = mongoose.model('User', userSchema);
+module.exports = mongoose.model('User', UserSchema);

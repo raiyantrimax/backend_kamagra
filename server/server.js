@@ -8,6 +8,7 @@ const path = require('path');
 
 const productsRouter = require('./routes/products.routes');
 const usersRouter = require('./routes/users.routes');
+const uploadRouter = require('./routes/upload.routes');
 
 const { upload, uploadDir } = require('./middleware/upload');
 
@@ -24,6 +25,7 @@ mongoose.connect(process.env.MONGODB_URI, { useNewUrlParser: true, useUnifiedTop
   .catch(err => console.error(err));
 
 // mount routers
+app.use('/api/upload', uploadRouter);
 app.use('/api/products', productsRouter);
 app.use('/api', usersRouter); // users/admin login mounted under /api (keeps /api/admin/login compatible)
 
