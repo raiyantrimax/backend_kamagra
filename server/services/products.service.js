@@ -207,7 +207,37 @@ async function updateProductFromUpload(idValue, req) {
  * Delete product by id.
  */
 async function deleteProductById(idValue) {
-    // Images are stored on Cloudinary - could add cleanup logic here if needed
+    const cloudinary = require('cloudinary').v2;
+    
+    // Get the product first to access image URLs
+    const product = await Product.findById(idValue);
+    if (!product) return null;
+    
+    // Delete images from Cloudinary
+    if (product.image && product.image.length > 0) {
+        for (const imageUrl of product.image) {
+            try {
+                // Extract public_id from Cloudinary URL
+                // Example URL: https://res.cloudinary.com/dwquuek9f/image/upload/v1234567890/products/filename.jpg
+                if (imageUrl.includes('cloudinary.com')) {
+                    const parts = imageUrl.split('/');
+                    const uploadIndex = parts.indexOf('upload');
+                    if (uploadIndex !== -1 && uploadIndex + 2 < parts.length) {
+                        // Get folder and filename, remove extension
+                        const folderAndFile = parts.slice(uploadIndex + 2).join('/');
+                        const publicId = folderAndFile.replace(/\.[^/.]+$/, ''); // Remove extension
+                        
+                        await cloudinary.uploader.destroy(publicId);
+                        console.log(`Deleted image from Cloudinary: ${publicId}`);
+                    }
+                }
+            } catch (error) {
+                console.error('Error deleting image from Cloudinary:', error);
+                // Continue with product deletion even if image deletion fails
+            }
+        }
+    }
+    
     return Product.findByIdAndDelete(idValue);
 }
 
