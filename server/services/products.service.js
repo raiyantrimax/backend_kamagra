@@ -1,6 +1,5 @@
 const Product = require('../model/Products');
 const path = require('path');
-const { uploadToCloud } = require('../middleware/upload');
 
 function normalizeImagesField(images) {
     if (!images) return [];
@@ -68,10 +67,7 @@ async function createProduct(data) {
  */
 async function createProductFromUpload(req) {
     const files = req.files || [];
-    
-    // For cloud storage, Cloudinary returns the full URL in file.path
-    // For local storage, we need to prepend /uploads/
-    const images = files.map(f => uploadToCloud ? f.path : `/uploads/${f.filename}`);
+    const images = files.map(f => `/uploads/${f.filename}`);
     
     const body = { ...req.body };
     // If client supplied images in body (string or array), merge them too
@@ -172,8 +168,8 @@ async function deleteProductById(idValue) {
     const product = await Product.findById(idValue);
     if (!product) return null;
     
-    // Delete associated images from file system (only for local storage)
-    if (!uploadToCloud && product.image && product.image.length > 0) {
+    // Delete associated images from file system
+    if (product.image && product.image.length > 0) {
         const fs = require('fs');
         const path = require('path');
         
@@ -189,19 +185,6 @@ async function deleteProductById(idValue) {
                 } catch (err) {
                     console.error(`Failed to delete image: ${fullPath}`, err);
                 }
-            }
-        });
-    } else if (uploadToCloud && product.image && product.image.length > 0) {
-        // Delete from Cloudinary in production
-        const cloudinary = require('cloudinary').v2;
-        
-        product.image.forEach(async (imageUrl) => {
-            try {
-                // Extract public_id from Cloudinary URL
-                const publicId = imageUrl.split('/').slice(-2).join('/').split('.')[0];
-                await cloudinary.uploader.destroy(publicId);
-            } catch (err) {
-                console.error(`Failed to delete image from Cloudinary: ${imageUrl}`, err);
             }
         });
     }
