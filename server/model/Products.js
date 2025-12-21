@@ -75,6 +75,27 @@ const ProductSchema = new Schema({
     trim: true
   },
   
+  // Product Variants (Quantity Options)
+  unitType: {
+    type: String,
+    enum: ['strip', 'pack'],
+    default: 'strip'
+  },
+  
+  variants: [{
+    quantity: {
+      type: Number,
+      required: true,
+      min: 1
+    },
+    discount: {
+      type: Number,
+      min: 0,
+      max: 100,
+      default: 0
+    }
+  }],
+  
   // Detailed product information sections
   overview: {
     title: {
