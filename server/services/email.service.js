@@ -1,11 +1,52 @@
 const nodemailer = require('nodemailer');
 
-// Configure email transporter
-const transporter = nodemailer.createTransport({
-  service: process.env.EMAIL_SERVICE || 'gmail',
-  auth: {
-    user: process.env.EMAIL_USER,
-    pass: process.env.EMAIL_PASSWORD
+// Configure email transporter with production-ready settings
+const createTransporter = () => {
+  // Check if custom SMTP settings are provided
+  if (process.env.EMAIL_HOST && process.env.EMAIL_PORT) {
+    return nodemailer.createTransport({
+      host: process.env.EMAIL_HOST,
+      port: parseInt(process.env.EMAIL_PORT),
+      secure: process.env.EMAIL_SECURE === 'true', // true for 465, false for other ports
+      auth: {
+        user: process.env.EMAIL_USER,
+        pass: process.env.EMAIL_PASSWORD
+      },
+      pool: true,
+      maxConnections: 5,
+      maxMessages: 10,
+      rateDelta: 1000,
+      rateLimit: 5,
+      tls: {
+        rejectUnauthorized: false // For self-signed certificates
+      }
+    });
+  }
+  
+  // Default to service-based configuration (Gmail, etc.)
+  return nodemailer.createTransport({
+    service: process.env.EMAIL_SERVICE || 'gmail',
+    auth: {
+      user: process.env.EMAIL_USER,
+      pass: process.env.EMAIL_PASSWORD
+    },
+    pool: true,
+    maxConnections: 5,
+    maxMessages: 10,
+    rateDelta: 1000,
+    rateLimit: 5
+  });
+};
+
+let transporter = createTransporter();
+
+// Verify transporter configuration on startup
+transporter.verify((error, success) => {
+  if (error) {
+    console.error('Email transporter configuration error:', error);
+    console.error('Please check your EMAIL_* environment variables');
+  } else {
+    console.log('✓ Email service is ready to send messages');
   }
 });
 
@@ -56,9 +97,17 @@ async function sendOTPEmail(email, otp, name) {
 
   try {
     await transporter.sendMail(mailOptions);
+    console.log(`✓ OTP email sent successfully to ${email}`);
     return { success: true, message: 'OTP sent successfully' };
   } catch (error) {
     console.error('Email sending error:', error);
+    console.error('Email config:', {
+      service: process.env.EMAIL_SERVICE,
+      user: process.env.EMAIL_USER,
+      hasPassword: !!process.env.EMAIL_PASSWORD,
+      host: process.env.EMAIL_HOST,
+      port: process.env.EMAIL_PORT
+    });
     return { success: false, message: 'Failed to send OTP email', error: error.message };
   }
 }
@@ -103,6 +152,7 @@ async function sendWelcomeEmail(email, name) {
 
   try {
     await transporter.sendMail(mailOptions);
+    console.log(`✓ Welcome email sent successfully to ${email}`);
     return { success: true };
   } catch (error) {
     console.error('Welcome email error:', error);

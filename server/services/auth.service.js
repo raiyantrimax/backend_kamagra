@@ -43,11 +43,10 @@ async function registerUser({ username, email, phone, password, role = 'user' })
   });
   await user.save();
 
-  // Send OTP email
-  const emailResult = await sendOTPEmail(email, otp, username);
-  if (!emailResult.success) {
-    return { success: false, message: 'Failed to send verification email. Please try again.' };
-  }
+  // Send OTP email asynchronously (don't wait for it to complete)
+  sendOTPEmail(email, otp, username).catch(err => {
+    console.error('Failed to send OTP email:', err);
+  });
 
   return { 
     success: true, 
@@ -74,9 +73,8 @@ async function authenticateUser(usernameOrEmail, password) {
   const match = await user.comparePassword(password);
   if (!match) return { success: false, message: 'Invalid credentials' };
 
-  // Update last login
-  user.lastLogin = new Date();
-  await user.save();
+  // Update last login without triggering full validation
+  await User.findByIdAndUpdate(user._id, { lastLogin: new Date() }, { runValidators: false });
 
   const token = signToken({ id: user._id, name: user.name, role: user.role });
   return { success: true, token, user: sanitizeUser(user) };
@@ -90,6 +88,9 @@ async function authenticateAdmin(username, password) {
 
   const match = await admin.comparePassword(password);
   if (!match) return { success: false, message: 'Invalid credentials' };
+
+  // Update last login without triggering full validation
+  await User.findByIdAndUpdate(admin._id, { lastLogin: new Date() }, { runValidators: false });
 
   const token = signToken({ id: admin._id, name: admin.name, role: 'admin' });
   return { success: true, token, admin: sanitizeUser(admin) };
@@ -127,8 +128,10 @@ async function verifyOTP(email, otp) {
   user.otpExpires = undefined;
   await user.save();
 
-  // Send welcome email
-  await sendWelcomeEmail(user.email, user.name);
+  // Send welcome email asynchronously (don't wait for it to complete)
+  sendWelcomeEmail(user.email, user.name).catch(err => {
+    console.error('Failed to send welcome email:', err);
+  });
 
   // Generate token
   const token = signToken({ id: user._id, name: user.name, role: user.role });
@@ -163,11 +166,10 @@ async function resendOTP(email) {
   user.otpExpires = otpExpires;
   await user.save();
 
-  // Send OTP email
-  const emailResult = await sendOTPEmail(email, otp, user.name);
-  if (!emailResult.success) {
-    return { success: false, message: 'Failed to send OTP email. Please try again.' };
-  }
+  // Send OTP email asynchronously (don't wait for it to complete)
+  sendOTPEmail(email, otp, user.name).catch(err => {
+    console.error('Failed to send OTP email:', err);
+  });
 
   return { 
     success: true, 
