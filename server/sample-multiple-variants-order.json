@@ -1,0 +1,70 @@
+{
+  "description": "Order with same product but multiple variants",
+  "example": "Kamagra tablet - both single strip and 3-strip variant",
+  
+  "orderData": {
+    "formData": {
+      "fullName": "John Doe",
+      "email": "john@example.com",
+      "phone": "+1234567890",
+      "address": "123 Main St",
+      "city": "New York",
+      "state": "NY",
+      "zipCode": "10001",
+      "country": "USA"
+    },
+    "items": [
+      {
+        "_id": "6947d156ab1ece4a5bdcbd43",
+        "name": "Kamagra 100 mg tablet",
+        "price": 15,
+        "quantity": 2,
+        "unitType": "strip",
+        "selectedQuantity": 1,
+        "discount": 0
+      },
+      {
+        "_id": "6947d156ab1ece4a5bdcbd43",
+        "name": "Kamagra 100 mg tablet",
+        "price": 12,
+        "quantity": 1,
+        "unitType": "strip",
+        "selectedQuantity": 3,
+        "discount": 20
+      }
+    ],
+    "total": 42,
+    "paymentMethod": "cash_on_delivery"
+  },
+  
+  "calculation": {
+    "item1": {
+      "description": "Single strip variant",
+      "basePrice": 15,
+      "discount": "0%",
+      "finalPrice": 15,
+      "quantity": 2,
+      "subtotal": 30,
+      "totalItems": "2 strips × 1 = 2 strips"
+    },
+    "item2": {
+      "description": "3 strips variant (-20%)",
+      "basePrice": 12,
+      "discount": "20%",
+      "discountAmount": 2.4,
+      "finalPrice": 9.6,
+      "quantity": 1,
+      "subtotal": 9.6,
+      "totalItems": "1 pack × 3 strips = 3 strips"
+    },
+    "grandTotal": 39.6
+  },
+  
+  "notes": [
+    "Same product ID can appear multiple times with different variants",
+    "Each variant is treated as a separate line item",
+    "selectedQuantity determines which variant (1 strip, 3 strips, etc.)",
+    "Stock is managed per product, not per variant",
+    "Each item validates its variant against product.variants array"
+  ]
+}

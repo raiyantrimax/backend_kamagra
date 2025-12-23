@@ -10,6 +10,7 @@ const cloudinary = require('cloudinary').v2;
 const productsRouter = require('./routes/products.routes');
 const usersRouter = require('./routes/users.routes');
 const uploadRouter = require('./routes/upload.routes');
+const ordersRouter = require('./routes/orders.routes');
 
 const { upload, uploadDir } = require('./middleware/upload');
 
@@ -43,6 +44,7 @@ mongoose.connect(process.env.MONGODB_URI, { useNewUrlParser: true, useUnifiedTop
 // mount routers
 app.use('/api/upload', uploadRouter);
 app.use('/api/products', productsRouter);
+app.use('/api/orders', ordersRouter);
 app.use('/api', usersRouter); // users/admin login mounted under /api (keeps /api/admin/login compatible)
 
 const PORT = process.env.PORT || 5000;

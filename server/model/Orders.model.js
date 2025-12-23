@@ -2,13 +2,6 @@ const mongoose = require('mongoose');
 const Schema = mongoose.Schema;
 
 const OrderSchema = new Schema({
-  orderNumber: {
-    type: String,
-    required: true,
-    unique: true,
-    index: true
-  },
-  
   user: {
     type: Schema.Types.ObjectId,
     ref: 'User',
@@ -16,20 +9,88 @@ const OrderSchema = new Schema({
     index: true
   },
   
+  // Customer information
+  customerInfo: {
+    fullName: {
+      type: String,
+      required: true,
+      trim: true
+    },
+    email: {
+      type: String,
+      required: true,
+      trim: true,
+      lowercase: true
+    },
+    phone: {
+      type: String,
+      required: true,
+      trim: true
+    },
+    address: String,
+    city: String,
+    state: String,
+    zipCode: String,
+    country: String
+  },
+  
+  // Order items with detailed product info and variant selection
   items: [{
     product: {
       type: Schema.Types.ObjectId,
       ref: 'Product',
       required: true
     },
-    name: String,
-    price: Number,
+    name: {
+      type: String,
+      required: true
+    },
+    price: {
+      type: Number,
+      required: true,
+      min: 0
+    },
+    // Number of units/strips/packs being ordered
     quantity: {
       type: Number,
       required: true,
       min: 1
     },
-    subtotal: Number
+    unitType: {
+      type: String,
+      enum: ['strip', 'pack'],
+      default: 'strip'
+    },
+    // Variant information: quantity per unit (e.g., 25 tablets per strip)
+    variant: {
+      quantity: {
+        type: Number,
+        required: true,
+        min: 1
+      },
+      discount: {
+        type: Number,
+        default: 0,
+        min: 0,
+        max: 100
+      }
+    },
+    // Total quantity of items (quantity * variant.quantityPerUnit)
+    totalItems: {
+      type: Number,
+      required: true
+    },
+    // Price after applying variant discount
+    finalPrice: {
+      type: Number,
+      required: true,
+      min: 0
+    },
+    subtotal: {
+      type: Number,
+      required: true,
+      min: 0
+    }
   }],
   
   shippingAddress: {
@@ -123,24 +184,7 @@ const OrderSchema = new Schema({
 
 // Indexes
 OrderSchema.index({ user: 1, status: 1 });
-OrderSchema.index({ orderNumber: 1 });
 OrderSchema.index({ createdAt: -1 });
 OrderSchema.index({ status: 1, createdAt: -1 });
-
-// Pre-save to generate order number
-OrderSchema.pre('save', async function(next) {
-  if (!this.orderNumber) {
-    const date = new Date();
-    const year = date.getFullYear();
-    const count = await this.constructor.countDocuments({
-      createdAt: {
-        $gte: new Date(year, 0, 1),
-        $lt: new Date(year + 1, 0, 1)
-      }
-    });
-    this.orderNumber = `ORD-${year}-${String(count + 1).padStart(6, '0')}`;
-  }
-  next();
-});
 
 module.exports = mongoose.model('Order', OrderSchema);

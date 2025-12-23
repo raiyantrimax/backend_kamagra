@@ -1,0 +1,105 @@
+{
+  "description": "Sample order data for testing - based on your exact requirements",
+  "orderData": {
+    "formData": {
+      "fullName": "raiyan",
+      "email": "raiyan.trimax@gmail.com",
+      "phone": "1234567890",
+      "address": "asasasass",
+      "city": "asasas",
+      "state": "sasasasa",
+      "zipCode": "sasasas",
+      "country": "asasasass"
+    },
+    "items": [
+      {
+        "_id": "6947d156ab1ece4a5bdcbd43",
+        "name": "Kamagra 100 mg tablet",
+        "price": 300,
+        "quantity": 2,
+        "unitType": "strip",
+        "selectedQuantity": 25,
+        "discount": 20
+      }
+    ],
+    "total": 660,
+    "paymentMethod": "cash_on_delivery"
+  },
+  
+  "instructions": {
+    "step1": "Make sure server is running: npm start",
+    "step2": "POST this data to: http://localhost:5000/api/orders",
+    "step3": "You will receive order number like: ORD-2025-000001",
+    "step4": "Use GET /api/orders to see all orders"
+  },
+  
+  "curlCommand": "curl -X POST http://localhost:5000/api/orders -H 'Content-Type: application/json' -d @sample-order-data.json",
+  
+  "expectedResponse": {
+    "success": true,
+    "message": "Order created successfully",
+    "orderNumber": "ORD-2025-000001",
+    "order": {
+      "_id": "generated-id",
+      "orderNumber": "ORD-2025-000001",
+      "customerInfo": {
+        "fullName": "raiyan",
+        "email": "raiyan.trimax@gmail.com",
+        "phone": "1234567890",
+        "address": "asasasass",
+        "city": "asasas",
+        "state": "sasasasa",
+        "zipCode": "sasasas",
+        "country": "asasasass"
+      },
+      "items": [
+        {
+          "product": "6947d156ab1ece4a5bdcbd43",
+          "name": "Kamagra 100 mg tablet",
+          "price": 300,
+          "quantity": 2,
+          "unitType": "strip",
+          "variant": {
+            "quantityPerUnit": 25,
+            "discount": 20
+          },
+          "totalItems": 50,
+          "finalPrice": 240,
+          "subtotal": 480
+        }
+      ],
+      "subtotal": 480,
+      "total": 660,
+      "status": "pending",
+      "payment": {
+        "method": "cash_on_delivery",
+        "status": "pending"
+      },
+      "createdAt": "2025-12-23T...",
+      "updatedAt": "2025-12-23T..."
+    }
+  },
+  
+  "notes": [
+    "Product must have matching variant with quantity=25 and discount=20",
+    "quantity=2 means ordering 2 strips",
+    "selectedQuantity=25 means 25 tablets per strip (variant)",
+    "discount=20 means 20% off (variant discount)",
+    "Calculation: Price ₹300 - 20% = ₹240 per strip × 2 strips = ₹480",
+    "Total items: 2 strips × 25 tablets = 50 tablets",
+    "Product stock will be reduced by quantity (2 strips)",
+    "If order is cancelled, stock will be restored"
+  ],
+  
+  "variantExplanation": {
+    "description": "Products can have multiple variant options for different quantities and discounts",
+    "example": "A product might have variants like:",
+    "variants": [
+      { "quantity": 10, "discount": 0 },
+      { "quantity": 25, "discount": 20 },
+      { "quantity": 50, "discount": 30 }
+    ],
+    "meaning": "Buy 25 tablets get 20% off, buy 50 get 30% off",
+    "yourOrder": "You selected the variant with 25 tablets at 20% discount"
+  }
+}
