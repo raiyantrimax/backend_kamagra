@@ -60,6 +60,15 @@ const UserSchema = new Schema({
     type: Date
   },
   
+  // OTP fields for email verification
+  otp: {
+    type: String
+  },
+  
+  otpExpires: {
+    type: Date
+  },
+  
   resetPasswordToken: String,
   resetPasswordExpires: Date
 }, {

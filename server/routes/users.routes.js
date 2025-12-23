@@ -8,7 +8,31 @@ router.post('/users/register', async (req, res) => {
   try {
     const { username, email, phone, password } = req.body;
     const result = await authService.registerUser({ username, email, phone, password });
-    if (result.success) return res.status(201).json({ success: true, token: result.token, user: result.user });
+    if (result.success) return res.status(201).json(result);
+    return res.status(400).json({ success: false, message: result.message });
+  } catch (err) {
+    return res.status(500).json({ success: false, message: err.message });
+  }
+});
+
+// POST /api/users/verify-otp  -> verify OTP
+router.post('/users/verify-otp', async (req, res) => {
+  try {
+    const { email, otp } = req.body;
+    const result = await authService.verifyOTP(email, otp);
+    if (result.success) return res.status(200).json(result);
+    return res.status(400).json({ success: false, message: result.message });
+  } catch (err) {
+    return res.status(500).json({ success: false, message: err.message });
+  }
+});
+
+// POST /api/users/resend-otp  -> resend OTP
+router.post('/users/resend-otp', async (req, res) => {
+  try {
+    const { email } = req.body;
+    const result = await authService.resendOTP(email);
+    if (result.success) return res.status(200).json(result);
     return res.status(400).json({ success: false, message: result.message });
   } catch (err) {
     return res.status(500).json({ success: false, message: err.message });

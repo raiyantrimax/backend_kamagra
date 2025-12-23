@@ -170,7 +170,8 @@ const ProductSchema = new Schema({
     },
     content: {
       type: String,
-      trim: true
+      trim: true,
+      required: false
     }
   },
   
