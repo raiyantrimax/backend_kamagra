@@ -90,6 +90,9 @@ async function createOrder(orderData) {
       },
       items: orderItems,
       subtotal: calculatedSubtotal,
+      tax: orderData.tax || 0,
+      shippingCost: orderData.shippingCost || 0,
+      discount: orderData.discount || 0,
       total: total || calculatedSubtotal,
       shippingAddress: {
         name: formData.fullName,
