@@ -6,11 +6,11 @@ const bcrypt = require('bcrypt');
 async function getAllUsers(filters = {}) {
   try {
     const { role, isActive, limit = 50, skip = 0, sortBy = 'createdAt', sortOrder = -1, search } = filters;
-    
+
     const query = {};
     if (role) query.role = role;
     if (isActive !== undefined) query.isActive = isActive === 'true';
-    
+
     // Search by name or email
     if (search) {
       query.$or = [
@@ -27,9 +27,26 @@ async function getAllUsers(filters = {}) {
 
     const total = await User.countDocuments(query);
 
+    // Add order count and total spent for each user
+    const usersWithOrderData = await Promise.all(users.map(async (user) => {
+      const orderCount = await Order.countDocuments({ user: user._id });
+
+      const totalSpentResult = await Order.aggregate([
+        { $match: { user: user._id } },
+        { $group: { _id: null, total: { $sum: '$total' } } }
+      ]);
+
+      const totalSpent = totalSpentResult.length > 0 ? totalSpentResult[0].total : 0;
+      return {
+        ...user.toObject(),
+        orderCount,
+        totalSpent
+      };
+    }));
+
     return {
       success: true,
-      users,
+      users: usersWithOrderData,
       total,
       page: Math.floor(skip / limit) + 1,
       totalPages: Math.ceil(total / limit)
@@ -51,13 +68,14 @@ async function getUserById(userId) {
     }
 
     // Get order count for this user
-    const orderCount = await Order.countDocuments({ user: userId });
+    const orderCount = await Order.countDocuments({ user: user._id });
 
     // Calculate total spent by aggregating order totals
     const totalSpentResult = await Order.aggregate([
       { $match: { user: user._id } },
-      { $group: { _id: null, total: { $sum: '$totalAmount' } } }
+      { $group: { _id: null, total: { $sum: '$total' } } }
     ]);
+
 
     const totalSpent = totalSpentResult.length > 0 ? totalSpentResult[0].total : 0;
 
@@ -93,7 +111,7 @@ async function updateUser(userId, updateData, requestingUserId, requestingUserRo
 
     // Fields that can be updated by the user themselves
     const userEditableFields = ['name', 'phone', 'address'];
-    
+
     // Fields that only admins can update
     const adminOnlyFields = ['role', 'isActive', 'isEmailVerified'];
 
@@ -142,10 +160,10 @@ async function updateUser(userId, updateData, requestingUserId, requestingUserRo
     const updatedUser = await User.findById(userId)
       .select('-password -otp -otpExpires -resetPasswordToken -resetPasswordExpires');
 
-    return { 
-      success: true, 
-      message: 'User updated successfully', 
-      user: updatedUser 
+    return {
+      success: true,
+      message: 'User updated successfully',
+      user: updatedUser
     };
   } catch (error) {
     console.error('Update user error:', error);
@@ -185,7 +203,7 @@ async function getUserStats() {
     const totalUsers = await User.countDocuments();
     const activeUsers = await User.countDocuments({ isActive: true });
     const verifiedUsers = await User.countDocuments({ isEmailVerified: true });
-    
+
     const usersByRole = await User.aggregate([
       {
         $group: {
@@ -236,8 +254,8 @@ async function toggleUserStatus(userId, requestingUserRole) {
     user.isActive = !user.isActive;
     await user.save();
 
-    return { 
-      success: true, 
+    return {
+      success: true,
       message: `User ${user.isActive ? 'activated' : 'deactivated'} successfully`,
       isActive: user.isActive
     };
