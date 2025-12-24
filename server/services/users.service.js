@@ -53,10 +53,19 @@ async function getUserById(userId) {
     // Get order count for this user
     const orderCount = await Order.countDocuments({ user: userId });
 
-    // Add orderCount to user object
+    // Calculate total spent by aggregating order totals
+    const totalSpentResult = await Order.aggregate([
+      { $match: { user: user._id } },
+      { $group: { _id: null, total: { $sum: '$totalAmount' } } }
+    ]);
+
+    const totalSpent = totalSpentResult.length > 0 ? totalSpentResult[0].total : 0;
+
+    // Add orderCount and totalSpent to user object
     const userWithOrderCount = {
       ...user.toObject(),
-      orderCount
+      orderCount,
+      totalSpent
     };
 
     return { success: true, user: userWithOrderCount };
