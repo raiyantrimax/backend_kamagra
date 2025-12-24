@@ -11,6 +11,7 @@ const productsRouter = require('./routes/products.routes');
 const usersRouter = require('./routes/users.routes');
 const uploadRouter = require('./routes/upload.routes');
 const ordersRouter = require('./routes/orders.routes');
+const { initializeEmailService } = require('./services/email.service');
 
 const { upload, uploadDir } = require('./middleware/upload');
 
@@ -38,7 +39,11 @@ app.use('/uploads', express.static(uploadDir));
 
 // MongoDB connection
 mongoose.connect(process.env.MONGODB_URI)
-  .then(() => console.log('MongoDB connected'))
+  .then(() => {
+    console.log('MongoDB connected');
+    // Initialize email service after MongoDB connection
+    initializeEmailService();
+  })
   .catch(err => console.error(err));
 
 // mount routers
