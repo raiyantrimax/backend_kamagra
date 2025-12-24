@@ -1,4 +1,5 @@
 const User = require('../model/Users.model');
+const Order = require('../model/Orders.model');
 const bcrypt = require('bcrypt');
 
 // Get all users (Admin only)
@@ -49,7 +50,16 @@ async function getUserById(userId) {
       return { success: false, message: 'User not found' };
     }
 
-    return { success: true, user };
+    // Get order count for this user
+    const orderCount = await Order.countDocuments({ user: userId });
+
+    // Add orderCount to user object
+    const userWithOrderCount = {
+      ...user.toObject(),
+      orderCount
+    };
+
+    return { success: true, user: userWithOrderCount };
   } catch (error) {
     console.error('Get user error:', error);
     return { success: false, message: 'Failed to fetch user', error: error.message };
