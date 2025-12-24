@@ -108,12 +108,16 @@ async function createOrder(orderData) {
 
     await order.save();
 
-    // Update product stock
+    // Update product stock based on variant quantity
     for (const item of items) {
+      // Calculate total items: quantity * variant quantity
+      // e.g., 2 packs * 25 strips per pack = 50 strips total
+      const totalItemsOrdered = item.quantity * (item.selectedQuantity || 1);
+      
       await Product.findByIdAndUpdate(
         item._id,
         { 
-          $inc: { stock: -item.quantity, sales: item.quantity }
+          $inc: { stock: -totalItemsOrdered, sales: totalItemsOrdered }
         }
       );
     }
