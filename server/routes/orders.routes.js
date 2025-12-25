@@ -80,24 +80,17 @@ router.get('/stats', authenticateUser, requireRole('admin', 'super_admin'), asyn
   }
 });
 
-// GET /api/orders/user/:userId - Get orders by user - Admin or own orders
-router.get('/user/:userId', authenticateUser, async (req, res) => {
+// GET /api/orders/my-orders - Get current user's orders
+router.get('/my-orders', authenticateUser, async (req, res) => {
   try {
-    const { userId } = req.params;
-    const { status, limit, skip } = req.query;
+    const { status, limit, skip, sortBy, sortOrder } = req.query;
     
-    // Users can only view their own orders unless they're admin
-    if (req.user.id !== userId && !['admin', 'super_admin'].includes(req.user.role)) {
-      return res.status(403).json({ 
-        success: false, 
-        message: 'You can only view your own orders' 
-      });
-    }
-    
-    const result = await ordersService.getUserOrders(userId, {
+    const result = await ordersService.getUserOrders(req.user.id, {
       status,
-      limit,
-      skip
+      limit: limit ? parseInt(limit) : 50,
+      skip: skip ? parseInt(skip) : 0,
+      sortBy,
+      sortOrder: sortOrder ? parseInt(sortOrder) : -1
     });
     
     if (result.success) {
@@ -113,12 +106,21 @@ router.get('/user/:userId', authenticateUser, async (req, res) => {
   }
 });
 
-// GET /api/orders/my-orders - Get current user's orders
-router.get('/my-orders', authenticateUser, async (req, res) => {
+// GET /api/orders/user/:userId - Get orders by user - Admin or own orders
+router.get('/user/:userId', authenticateUser, async (req, res) => {
   try {
+    const { userId } = req.params;
     const { status, limit, skip } = req.query;
     
-    const result = await ordersService.getUserOrders(req.user.id, {
+    // Users can only view their own orders unless they're admin
+    if (req.user.id !== userId && !['admin', 'super_admin'].includes(req.user.role)) {
+      return res.status(403).json({ 
+        success: false, 
+        message: 'You can only view your own orders' 
+      });
+    }
+    
+    const result = await ordersService.getUserOrders(userId, {
       status,
       limit,
       skip

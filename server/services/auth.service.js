@@ -14,7 +14,7 @@ function signToken(payload) {
 
 function sanitizeUser(user) {
   if (!user) return null;
-  const { password, __v, ...rest } = user.toObject ? user.toObject() : user;
+  const { password, __v, otp, otpExpires, otpLastSentAt, resetPasswordToken, resetPasswordExpires, ...rest } = user.toObject ? user.toObject() : user;
   return rest;
 }
 
@@ -53,8 +53,7 @@ async function registerUser({ username, email, phone, password, role = 'user' })
   return { 
     success: true, 
     message: 'Registration successful! Please check your email for OTP verification.',
-    userId: user._id,
-    email: user.email
+    user: sanitizeUser(user)
   };
 }
 
