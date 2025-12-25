@@ -69,6 +69,10 @@ const UserSchema = new Schema({
     type: Date
   },
   
+  otpLastSentAt: {
+    type: Date
+  },
+  
   resetPasswordToken: String,
   resetPasswordExpires: Date
 }, {

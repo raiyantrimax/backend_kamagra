@@ -6,6 +6,7 @@ const { generateOTP, sendOTPEmail, sendWelcomeEmail } = require('./email.service
 const JWT_SECRET = process.env.JWT_SECRET || 'dev-secret';
 const TOKEN_EXPIRES_IN = '8h';
 const OTP_EXPIRES_IN = 10 * 60 * 1000; // 10 minutes in milliseconds
+const OTP_RESEND_WAIT_TIME = 10 * 60 * 1000; // 10 minutes wait before resending
 
 function signToken(payload) {
   return jwt.sign(payload, JWT_SECRET, { expiresIn: TOKEN_EXPIRES_IN });
@@ -39,6 +40,7 @@ async function registerUser({ username, email, phone, password, role = 'user' })
     role,
     otp,
     otpExpires,
+    otpLastSentAt: new Date(),
     isEmailVerified: false
   });
   await user.save();
@@ -158,12 +160,25 @@ async function resendOTP(email) {
     return { success: false, message: 'Email already verified' };
   }
 
+  // Check if 10 minutes have passed since last OTP was sent
+  if (user.otpLastSentAt) {
+    const timeSinceLastOTP = Date.now() - user.otpLastSentAt.getTime();
+    if (timeSinceLastOTP < OTP_RESEND_WAIT_TIME) {
+      const waitTimeRemaining = Math.ceil((OTP_RESEND_WAIT_TIME - timeSinceLastOTP) / 1000 / 60);
+      return { 
+        success: false, 
+        message: `Please wait ${waitTimeRemaining} minute(s) before requesting a new OTP`
+      };
+    }
+  }
+
   // Generate new OTP
   const otp = generateOTP();
   const otpExpires = new Date(Date.now() + OTP_EXPIRES_IN);
 
   user.otp = otp;
   user.otpExpires = otpExpires;
+  user.otpLastSentAt = new Date();
   await user.save();
 
   // Send OTP email asynchronously (don't wait for it to complete)
