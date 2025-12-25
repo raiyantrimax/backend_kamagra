@@ -202,11 +202,61 @@ function verifyToken(token) {
   }
 }
 
+async function changePassword(userId, currentPassword, newPassword) {
+  try {
+    console.log('Change password request for userId:', userId);
+    
+    if (!currentPassword || !newPassword) {
+      return { success: false, message: 'Current password and new password are required' };
+    }
+
+    if (newPassword.length < 6) {
+      return { success: false, message: 'New password must be at least 6 characters long' };
+    }
+
+    if (currentPassword === newPassword) {
+      return { success: false, message: 'New password must be different from current password' };
+    }
+
+    const user = await User.findById(userId);
+    if (!user) {
+      console.log('User not found for userId:', userId);
+      return { success: false, message: 'User not found' };
+    }
+
+    console.log('User found:', user.email);
+
+    // Verify current password
+    const isMatch = await user.comparePassword(currentPassword);
+    console.log('Password match result:', isMatch);
+    
+    if (!isMatch) {
+      return { success: false, message: 'Current password is incorrect' };
+    }
+
+    // Update password - explicitly mark as modified
+    user.password = newPassword;
+    user.markModified('password');
+    await user.save();
+
+    console.log('Password changed successfully for user:', user.email);
+
+    return {
+      success: true,
+      message: 'Password changed successfully'
+    };
+  } catch (error) {
+    console.error('Change password error:', error);
+    return { success: false, message: 'Failed to change password', error: error.message };
+  }
+}
+
 module.exports = {
   registerUser,
   authenticateUser,
   authenticateAdmin,
   verifyToken,
   verifyOTP,
-  resendOTP
+  resendOTP,
+  changePassword
 };

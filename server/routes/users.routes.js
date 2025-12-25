@@ -112,6 +112,28 @@ router.get('/users/stats', authenticateUser, requireRole('admin', 'super_admin')
   }
 });
 
+// POST /api/users/:id/change-password -> change password (user can only change their own)
+router.post('/users/:id/change-password', authenticateUser, async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { currentPassword, newPassword } = req.body;
+    
+    // Users can only change their own password unless they're admin
+    if (req.user.id !== id && !['admin', 'super_admin'].includes(req.user.role)) {
+      return res.status(403).json({ 
+        success: false, 
+        message: 'You can only change your own password' 
+      });
+    }
+    
+    const result = await authService.changePassword(id, currentPassword, newPassword);
+    if (result.success) return res.status(200).json(result);
+    return res.status(400).json({ success: false, message: result.message });
+  } catch (err) {
+    return res.status(500).json({ success: false, message: err.message });
+  }
+});
+
 // GET /api/users/:id - Get user by ID (Admin or own profile)
 router.get('/users/:id', authenticateUser, async (req, res) => {
   try {
@@ -145,9 +167,8 @@ router.put('/users/:id', authenticateUser, async (req, res) => {
   try {
     const { id } = req.params;
     const updateData = req.body;
-    
     const result = await usersService.updateUser(
-      id, 
+      req.user.id, 
       updateData, 
       req.user.id, 
       req.user.role
@@ -203,6 +224,20 @@ router.patch('/users/:id/toggle-status', authenticateUser, requireRole('admin', 
       message: 'Server error', 
       error: error.message 
     });
+  }
+});
+
+
+// POST /api/users/change-password -> change password (user only)
+router.post('/users/:id/change-password', authenticateUser, requireRole('user'), async (req, res) => {
+  try {
+    const { currentPassword, newPassword } = req.body;
+    console.log('Change password request for user:', req.user.id);
+    const result = await authService.changePassword(req.user.id, currentPassword, newPassword);
+    if (result.success) return res.status(200).json(result);
+    return res.status(400).json({ success: false, message: result.message });
+  } catch (err) {
+    return res.status(500).json({ success: false, message: err.message });
   }
 });
 
