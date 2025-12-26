@@ -9,26 +9,26 @@ const ProductSchema = new Schema({
     trim: true,
     index: true
   },
-  
+
   price: {
     type: Number,
     required: true,
     min: 0
   },
-  
+
   originalPrice: {
     type: Number,
     min: 0,
     default: null
   },
-  
+
   productCode: {
     type: String,
     unique: true,
     sparse: true,
     trim: true
   },
-  
+
   // Category & Classification
   category: {
     type: String,
@@ -36,12 +36,18 @@ const ProductSchema = new Schema({
     trim: true,
     index: true
   },
-  
+
+  dosage: {
+    type: String,
+    required: true,
+    trim: true,
+    index: true
+  },
   manufacturer: {
     type: String,
     trim: true
   },
-  
+
   // Inventory
   stock: {
     type: Number,
@@ -49,39 +55,39 @@ const ProductSchema = new Schema({
     min: 0,
     default: 0
   },
-  
+
   availability: {
     type: String,
     enum: ['In Stock', 'Out of Stock', 'Pre-Order', 'Discontinued'],
     default: 'In Stock'
   },
-  
+
   status: {
     type: String,
     enum: ['active', 'inactive', 'out-of-stock'],
     default: 'active',
     index: true
   },
-  
+
   // Media
   image: [{
     type: String,
     trim: true
   }],
-  
+
   // Short description for card/listing views
   description: {
     type: String,
     trim: true
   },
-  
+
   // Product Variants (Quantity Options)
   unitType: {
     type: String,
     enum: ['strip', 'pack'],
     default: 'strip'
   },
-  
+
   variants: [{
     quantity: {
       type: Number,
@@ -95,7 +101,7 @@ const ProductSchema = new Schema({
       default: 0
     }
   }],
-  
+
   // Detailed product information sections
   overview: {
     title: {
@@ -107,7 +113,7 @@ const ProductSchema = new Schema({
       trim: true
     }
   },
-  
+
   administration: {
     title: {
       type: String,
@@ -118,7 +124,7 @@ const ProductSchema = new Schema({
       trim: true
     }
   },
-  
+
   sideEffects: {
     title: {
       type: String,
@@ -129,7 +135,7 @@ const ProductSchema = new Schema({
       trim: true
     }
   },
-  
+
   contraindications: {
     title: {
       type: String,
@@ -140,7 +146,7 @@ const ProductSchema = new Schema({
       trim: true
     }
   },
-  
+
   howItWorks: {
     title: {
       type: String,
@@ -151,7 +157,7 @@ const ProductSchema = new Schema({
       trim: true
     }
   },
-  
+
   tips: {
     title: {
       type: String,
@@ -162,7 +168,7 @@ const ProductSchema = new Schema({
       trim: true
     }
   },
-  
+
   faq: {
     title: {
       type: String,
@@ -173,7 +179,7 @@ const ProductSchema = new Schema({
       trim: true
     }
   },
-  
+
   warning: {
     title: {
       type: String,
@@ -184,19 +190,19 @@ const ProductSchema = new Schema({
       trim: true
     }
   },
-  
+
   // Additional flags
   isNew: {
     type: Boolean,
     default: false
   },
-  
+
   isFeatured: {
     type: Boolean,
     default: false,
     index: true
   },
-  
+
   // SEO fields
   slug: {
     type: String,
@@ -205,35 +211,35 @@ const ProductSchema = new Schema({
     trim: true,
     lowercase: true
   },
-  
+
   metaTitle: {
     type: String,
     trim: true
   },
-  
+
   metaDescription: {
     type: String,
     trim: true
   },
-  
+
   metaKeywords: [{
     type: String,
     trim: true
   }],
-  
+
   // Analytics
   sales: {
     type: Number,
     default: 0,
     min: 0
   },
-  
+
   views: {
     type: Number,
     default: 0,
     min: 0
   },
-  
+
   rating: {
     average: {
       type: Number,
@@ -261,7 +267,7 @@ ProductSchema.index({ sales: -1 });
 ProductSchema.index({ createdAt: -1 });
 
 // Virtual for discount percentage
-ProductSchema.virtual('discountPercentage').get(function() {
+ProductSchema.virtual('discountPercentage').get(function () {
   if (this.originalPrice && this.originalPrice > this.price) {
     return Math.round(((this.originalPrice - this.price) / this.originalPrice) * 100);
   }
@@ -269,13 +275,13 @@ ProductSchema.virtual('discountPercentage').get(function() {
 });
 
 // Virtual for image URLs (if images are stored as relative paths)
-ProductSchema.virtual('imageUrls').get(function() {
+ProductSchema.virtual('imageUrls').get(function () {
   if (!this.image || this.image.length === 0) return [];
   return this.image.map(img => process.env.CDN_URL ? `${process.env.CDN_URL}${img}` : img);
 });
 
 // Pre-save middleware to generate slug
-ProductSchema.pre('save', function(next) {
+ProductSchema.pre('save', function (next) {
   if (this.isModified('name') && !this.slug) {
     this.slug = this.name
       .toLowerCase()
@@ -286,17 +292,17 @@ ProductSchema.pre('save', function(next) {
 });
 
 // Methods
-ProductSchema.methods.incrementSales = function(quantity = 1) {
+ProductSchema.methods.incrementSales = function (quantity = 1) {
   this.sales += quantity;
   return this.save();
 };
 
-ProductSchema.methods.incrementViews = function() {
+ProductSchema.methods.incrementViews = function () {
   this.views += 1;
   return this.save();
 };
 
-ProductSchema.methods.updateStock = function(quantity) {
+ProductSchema.methods.updateStock = function (quantity) {
   this.stock += quantity;
   if (this.stock <= 0) {
     this.stock = 0;
@@ -310,26 +316,26 @@ ProductSchema.methods.updateStock = function(quantity) {
 };
 
 // Static methods
-ProductSchema.statics.findByCategory = function(category, options = {}) {
+ProductSchema.statics.findByCategory = function (category, options = {}) {
   return this.find({ category, status: 'active', ...options.filters })
     .sort(options.sort || { createdAt: -1 })
     .limit(options.limit || 10)
     .skip(options.skip || 0);
 };
 
-ProductSchema.statics.findFeatured = function(limit = 10) {
+ProductSchema.statics.findFeatured = function (limit = 10) {
   return this.find({ isFeatured: true, status: 'active' })
     .sort({ sales: -1 })
     .limit(limit);
 };
 
-ProductSchema.statics.findTopSelling = function(limit = 10) {
+ProductSchema.statics.findTopSelling = function (limit = 10) {
   return this.find({ status: 'active' })
     .sort({ sales: -1 })
     .limit(limit);
 };
 
-ProductSchema.statics.searchProducts = function(query, options = {}) {
+ProductSchema.statics.searchProducts = function (query, options = {}) {
   return this.find({
     $text: { $search: query },
     status: 'active',
