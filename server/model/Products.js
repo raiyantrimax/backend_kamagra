@@ -90,7 +90,7 @@ const ProductSchema = new Schema({
   // Product Variants (Quantity Options)
   unitType: {
     type: String,
-    enum: ['strip', 'pack'],
+    enum: ['strip', 'pack' ,'bottle', 'box', 'piece', 'tube', 'vial', 'syringe', 'sachet'],
     default: 'strip'
   },
 
