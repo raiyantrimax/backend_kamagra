@@ -45,19 +45,31 @@ async function createOrder(orderData) {
         };
       }
 
-      // Calculate pricing with variant discount
+      // Ensure selectedQuantity has a valid value (default to 1)
+      const selectedQuantity = item.selectedQuantity || 1;
+
+      // Use the price as sent from frontend (already calculated for the variant)
       const itemPrice = item.price;
       const variantDiscount = item.discount || 0;
-      const discountAmount = (itemPrice * variantDiscount) / 100;
-      const finalPrice = itemPrice - discountAmount;
       
-      // Calculate total: quantity of units * price per unit after discount
-      const subtotal = finalPrice * item.quantity;
+      // Calculate subtotal: price * quantity (price already includes variant calculation)
+      const subtotal = itemPrice * item.quantity;
       
-      // Total items: quantity of units * items per unit (e.g., 2 strips * 1 = 2 strips OR 1 pack * 3 strips = 3 strips)
-      const totalItems = item.quantity * (item.selectedQuantity || 1);
+      // Total items: quantity of units * items per unit (for stock management)
+      const totalItems = item.quantity * selectedQuantity;
       
       calculatedSubtotal += subtotal;
+
+      console.log('Order Item Debug:', {
+        itemName: item.name,
+        inputPrice: item.price,
+        itemPrice,
+        quantity: item.quantity,
+        selectedQuantity,
+        totalItems,
+        subtotal,
+        finalPrice: itemPrice
+      });
 
       orderItems.push({
         product: item._id,
@@ -66,11 +78,11 @@ async function createOrder(orderData) {
         quantity: item.quantity,
         unitType: item.unitType || 'strip',
         variant: {
-          quantity: item.selectedQuantity,
-          discount: item.discount || 0
+          quantity: selectedQuantity,
+          discount: variantDiscount
         },
         totalItems: totalItems,
-        finalPrice: finalPrice,
+        finalPrice: itemPrice,
         subtotal: subtotal
       });
     }
@@ -152,7 +164,10 @@ async function getAllOrders(filters = {}) {
 
     const orders = await Order.find(query)
       .populate('user', 'name email')
-      .populate('items.product', 'name image category')
+      .populate({
+        path: 'items.product',
+        select: 'name image category price stock dosage manufacturer productCode description unitType variants overview administration sideEffects contraindications howItWorks tips faq warning originalPrice containQuantity'
+      })
       .sort({ [sortBy]: sortOrder })
       .limit(parseInt(limit))
       .skip(parseInt(skip));
@@ -177,7 +192,10 @@ async function getOrderById(orderId) {
   try {
     const order = await Order.findById(orderId)
       .populate('user', 'name email phone')
-      .populate('items.product', 'name image category price stock');
+      .populate({
+        path: 'items.product',
+        select: 'name image category price stock dosage manufacturer productCode description unitType variants overview administration sideEffects contraindications howItWorks tips faq warning originalPrice containQuantity'
+      });
 
     if (!order) {
       return { success: false, message: 'Order not found' };
@@ -199,7 +217,10 @@ async function getOrderByNumber(orderIdOrNumber) {
     if (orderIdOrNumber.match(/^[0-9a-fA-F]{24}$/)) {
       order = await Order.findById(orderIdOrNumber)
         .populate('user', 'name email phone')
-        .populate('items.product', 'name image category price');
+        .populate({
+          path: 'items.product',
+          select: 'name image category price stock dosage manufacturer productCode description unitType variants overview administration sideEffects contraindications howItWorks tips faq warning originalPrice containQuantity'
+        });
     }
     
     if (!order) {
@@ -222,7 +243,11 @@ async function getUserOrders(userId, filters = {}) {
     if (status) query.status = status;
 
     const orders = await Order.find(query)
-      .populate('items.product', 'name image category')
+      .populate({
+        path: 'items.product',
+        select: 'name image category price stock dosage manufacturer productCode description unitType variants overview administration sideEffects contraindications howItWorks tips faq warning originalPrice containQuantity'
+      })
+      // .populate('items.product', 'name image category')
       .sort({ createdAt: -1 })
       .limit(parseInt(limit))
       .skip(parseInt(skip));

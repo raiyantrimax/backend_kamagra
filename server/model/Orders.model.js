@@ -58,7 +58,7 @@ const OrderSchema = new Schema({
     },
     unitType: {
       type: String,
-      enum: ['strip', 'pack', 'box', 'bottle', 'unit'],
+      enum: ['strip', 'pack', 'box', 'bottle', 'unit', 'piece', 'tube', 'vial', 'syringe', 'sachet'],
       default: 'strip'
     },
     // Variant information: quantity per unit (e.g., 25 tablets per strip)
@@ -179,7 +179,17 @@ const OrderSchema = new Schema({
   cancelledAt: Date,
   cancelReason: String
 }, {
-  timestamps: true
+  timestamps: true,
+  toJSON: { virtuals: true },
+  toObject: { virtuals: true }
+});
+
+// Virtual populate for product details
+OrderSchema.virtual('items.productInfo', {
+  ref: 'Product',
+  localField: 'items.product',
+  foreignField: '_id',
+  justOne: true
 });
 
 // Indexes
