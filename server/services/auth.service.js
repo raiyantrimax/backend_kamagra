@@ -1,7 +1,7 @@
 const jwt = require('jsonwebtoken');
 const bcrypt = require('bcrypt');
 const User = require('../model/Users.model');
-const { generateOTP, sendOTPEmail, sendWelcomeEmail } = require('./email.service');
+const { generateOTP, sendOTPEmail, sendWelcomeEmail, sendPasswordResetOTP } = require('./email.service');
 
 const JWT_SECRET = process.env.JWT_SECRET || 'dev-secret';
 const TOKEN_EXPIRES_IN = '8h';
@@ -250,6 +250,110 @@ async function changePassword(userId, currentPassword, newPassword) {
   }
 }
 
+async function forgotPassword(email) {
+  try {
+    if (!email) {
+      return { success: false, message: 'Email is required' };
+    }
+
+    const user = await User.findOne({ email });
+    if (!user) {
+      // Return success even if user not found for security (don't reveal user existence)
+      return { 
+        success: true, 
+        message: 'If an account with that email exists, a password reset OTP has been sent.'
+      };
+    }
+
+    // Check if OTP was recently sent (within 10 minutes)
+    if (user.otpLastSentAt) {
+      const timeSinceLastOTP = Date.now() - user.otpLastSentAt.getTime();
+      if (timeSinceLastOTP < OTP_RESEND_WAIT_TIME) {
+        const waitTimeRemaining = Math.ceil((OTP_RESEND_WAIT_TIME - timeSinceLastOTP) / 1000 / 60);
+        return { 
+          success: false, 
+          message: `Please wait ${waitTimeRemaining} minute(s) before requesting a new OTP. An OTP was recently sent to your email.`
+        };
+      }
+    }
+
+    // Generate new OTP for password reset
+    const otp = generateOTP();
+    const otpExpires = new Date(Date.now() + OTP_EXPIRES_IN);
+
+    // Store OTP in user document
+    user.otp = otp;
+    user.otpExpires = otpExpires;
+    user.otpLastSentAt = new Date();
+    await user.save();
+
+    // Send password reset OTP email
+    const emailResult = await sendPasswordResetOTP(email, otp, user.name);
+    
+    if (!emailResult.success) {
+      console.error('Failed to send password reset email:', emailResult.error);
+    }
+
+    return { 
+      success: true, 
+      message: 'If an account with that email exists, a password reset OTP has been sent. The OTP will expire in 10 minutes.'
+    };
+  } catch (error) {
+    console.error('Forgot password error:', error);
+    return { success: false, message: 'Failed to process password reset request', error: error.message };
+  }
+}
+
+async function resetPasswordWithOTP(email, otp, newPassword) {
+  try {
+    if (!email || !otp || !newPassword) {
+      return { success: false, message: 'Email, OTP, and new password are required' };
+    }
+
+    if (newPassword.length < 6) {
+      return { success: false, message: 'New password must be at least 6 characters long' };
+    }
+
+    const user = await User.findOne({ email });
+    if (!user) {
+      return { success: false, message: 'Invalid email or OTP' };
+    }
+
+    // Check if OTP exists
+    if (!user.otp || !user.otpExpires) {
+      return { success: false, message: 'No password reset request found. Please request a new OTP.' };
+    }
+
+    // Check if OTP has expired
+    if (new Date() > user.otpExpires) {
+      return { success: false, message: 'OTP has expired. Please request a new one.' };
+    }
+
+    // Verify OTP
+    if (user.otp !== otp) {
+      return { success: false, message: 'Invalid OTP' };
+    }
+
+    // Update password and clear OTP fields
+    user.password = newPassword;
+    user.otp = undefined;
+    user.otpExpires = undefined;
+    user.otpLastSentAt = undefined;
+    user.markModified('password');
+    await user.save();
+
+    console.log('Password reset successfully for user:', user.email);
+
+    return {
+      success: true,
+      message: 'Password has been reset successfully. You can now login with your new password.'
+    };
+  } catch (error) {
+    console.error('Reset password error:', error);
+    return { success: false, message: 'Failed to reset password', error: error.message };
+  }
+}
+
 module.exports = {
   registerUser,
   authenticateUser,
@@ -257,5 +361,7 @@ module.exports = {
   verifyToken,
   verifyOTP,
   resendOTP,
-  changePassword
+  changePassword,
+  forgotPassword,
+  resetPasswordWithOTP
 };

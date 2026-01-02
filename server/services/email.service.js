@@ -132,9 +132,70 @@ async function sendWelcomeEmail(email, name) {
   }
 }
 
+// Send Password Reset OTP email
+async function sendPasswordResetOTP(email, otp, name) {
+  const sendSmtpEmail = new brevo.SendSmtpEmail();
+  
+  sendSmtpEmail.subject = 'Password Reset - OTP Code';
+  sendSmtpEmail.to = [{ email: email, name: name || 'User' }];
+  sendSmtpEmail.htmlContent = `
+    <!DOCTYPE html>
+    <html>
+    <head>
+      <style>
+        body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; }
+        .container { max-width: 600px; margin: 0 auto; padding: 20px; }
+        .header { background-color: #ff6b6b; color: white; padding: 20px; text-align: center; }
+        .content { background-color: #f9f9f9; padding: 30px; border-radius: 5px; margin-top: 20px; }
+        .otp-code { font-size: 32px; font-weight: bold; color: #ff6b6b; letter-spacing: 5px; text-align: center; padding: 20px; background-color: white; border-radius: 5px; margin: 20px 0; }
+        .warning { background-color: #fff3cd; border-left: 4px solid #ffc107; padding: 15px; margin: 15px 0; }
+        .footer { text-align: center; margin-top: 20px; font-size: 12px; color: #777; }
+      </style>
+    </head>
+    <body>
+      <div class="container">
+        <div class="header">
+          <h1>Password Reset Request</h1>
+        </div>
+        <div class="content">
+          <h2>Hello ${name || 'User'}!</h2>
+          <p>We received a request to reset your password. Use the OTP code below to complete the password reset process:</p>
+          <div class="otp-code">${otp}</div>
+          <p><strong>This code will expire in 10 minutes.</strong></p>
+          <div class="warning">
+            <strong>⚠️ Security Notice:</strong> If you didn't request this password reset, please ignore this email and your password will remain unchanged.
+          </div>
+        </div>
+        <div class="footer">
+          <p>This is an automated email. Please do not reply.</p>
+        </div>
+      </div>
+    </body>
+    </html>
+  `;
+  sendSmtpEmail.sender = { 
+    name: process.env.EMAIL_FROM_NAME || 'Car Rental App', 
+    email: process.env.EMAIL_FROM || 'noreply@yourdomain.com' 
+  };
+
+  try {
+    const result = await apiInstance.sendTransacEmail(sendSmtpEmail);
+    console.log(`✓ Password reset OTP email sent successfully to ${email}`);
+    console.log(`Message ID: ${result.messageId}`);
+    return { success: true, message: 'Password reset OTP sent successfully' };
+  } catch (error) {
+    console.error('Password reset email sending error:', error.message);
+    if (error.response && error.response.body) {
+      console.error('Brevo API Error:', JSON.stringify(error.response.body, null, 2));
+    }
+    return { success: false, message: 'Failed to send password reset OTP email', error: error.message };
+  }
+}
+
 module.exports = {
   initializeEmailService,
   generateOTP,
   sendOTPEmail,
-  sendWelcomeEmail
+  sendWelcomeEmail,
+  sendPasswordResetOTP
 };

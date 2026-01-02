@@ -58,7 +58,7 @@ const OrderSchema = new Schema({
     },
     unitType: {
       type: String,
-      enum: ['strip', 'pack'],
+      enum: ['strip', 'pack', 'box', 'bottle', 'unit'],
       default: 'strip'
     },
     // Variant information: quantity per unit (e.g., 25 tablets per strip)

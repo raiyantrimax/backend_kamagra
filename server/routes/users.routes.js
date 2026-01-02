@@ -41,6 +41,30 @@ router.post('/users/resend-otp', async (req, res) => {
   }
 });
 
+// POST /api/users/forgot-password  -> request password reset OTP
+router.post('/users/forgot-password', async (req, res) => {
+  try {
+    const { email } = req.body;
+    const result = await authService.forgotPassword(email);
+    if (result.success) return res.status(200).json(result);
+    return res.status(400).json({ success: false, message: result.message });
+  } catch (err) {
+    return res.status(500).json({ success: false, message: err.message });
+  }
+});
+
+// POST /api/users/reset-password  -> reset password with OTP
+router.post('/users/reset-password', async (req, res) => {
+  try {
+    const { email, otp, newPassword } = req.body;
+    const result = await authService.resetPasswordWithOTP(email, otp, newPassword);
+    if (result.success) return res.status(200).json(result);
+    return res.status(400).json({ success: false, message: result.message });
+  } catch (err) {
+    return res.status(500).json({ success: false, message: err.message });
+  }
+});
+
 // POST /api/users/login  -> regular user auth (login by username or email)
 router.post('/users/login', async (req, res) => {
   try {
